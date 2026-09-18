@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>ハーネスエンジニアリング開発標準 — 構造理解・機能配置・開発上の留意点</title>
+<style>
+:root{
+  --bg:#f5f7fb; --paper:#ffffff; --ink:#16212b; --muted:#5d6b78;
+  --line:#d9e2ec; --blue:#145da0; --teal:#0f766e; --orange:#c47a00;
+  --soft:#eef4fb; --soft2:#eef9f5; --soft3:#fff8e8; --soft4:#f3f4f6;
+  --build:#ebf5ff; --reuse:#f4f5f7;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Meiryo,"Yu Gothic UI","Yu Gothic",sans-serif;line-height:1.72;font-size:15px;}
+header{background:linear-gradient(135deg,#0d1b2a,#1b3550);color:#fff;padding:44px 24px 36px;}
+.header-inner{max-width:1240px;margin:0 auto}
+.eyebrow{font-size:12px;letter-spacing:.08em;opacity:.78;margin-bottom:8px}
+h1{font-size:31px;line-height:1.35;margin:0 0 12px}
+.subtitle{font-size:16px;max-width:980px;opacity:.92;margin:0}
+.meta{max-width:1240px;margin:18px auto 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+.meta div{background:rgba(255,255,255,.08);padding:10px 12px;border-radius:8px}
+.meta b{display:block;font-size:11px;opacity:.75;margin-bottom:3px}
+.layout{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:270px minmax(0,1fr);gap:24px;padding:24px;}
+nav{position:sticky;top:16px;align-self:start;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;max-height:calc(100vh - 32px);overflow:auto;}
+nav h2{font-size:14px;margin:0 0 8px}
+nav a{display:block;text-decoration:none;color:#334155;font-size:12.5px;padding:6px 8px;border-radius:6px}
+nav a:hover{background:#eef2f7;color:#0f3e69}
+main{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:30px;min-width:0;}
+section{margin-bottom:40px}
+h2{font-size:24px;margin:6px 0 18px;padding-bottom:8px;border-bottom:2px solid #1f3c55}
+h3{font-size:18px;margin:24px 0 10px}
+p{margin:8px 0 12px}
+ul,ol{padding-left:1.6em}
+li{margin:4px 0}
+.lead{font-size:17px;line-height:1.82}
+.small{font-size:12px;color:var(--muted)}
+.label{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #93a4b7;font-size:11px;font-weight:700;letter-spacing:.04em;margin-right:6px}
+.factbox,.viewbox,.warnbox,.tipbox{padding:14px 16px;border-radius:10px;border-left:5px solid #2b6cb0;margin:14px 0}
+.factbox{background:var(--soft);border-color:#2b6cb0}
+.viewbox{background:var(--soft2);border-color:var(--teal)}
+.warnbox{background:var(--soft3);border-color:var(--orange)}
+.tipbox{background:var(--soft4);border-color:#6b7280}
+.conf{font-weight:700;color:var(--teal)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.card{border:1px solid var(--line);border-radius:12px;padding:15px;background:#fbfdff;}
+.card h3{margin-top:0}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0 18px}
+table{border-collapse:collapse;width:100%;min-width:920px;background:#fff}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid #edf0f3;padding:9px 10px;vertical-align:top;text-align:left}
+th{background:#eef2f6;font-size:12px;white-space:nowrap}
+td{font-size:12.8px}
+tr:last-child td{border-bottom:0}
+code{font-family:Consolas,"Courier New",monospace;background:#f4f6f8;padding:1px 4px;border-radius:4px;font-size:.92em}
+pre{background:#111827;color:#e5e7eb;padding:14px;border-radius:8px;overflow:auto;font-family:Consolas,"Courier New",monospace;font-size:12px;line-height:1.55}
+.arch{border:1px solid var(--line);border-radius:12px;padding:18px;background:#fcfdff;margin:16px 0;}
+.arch-title{font-size:16px;font-weight:700;margin-bottom:10px}
+.stack{display:grid;gap:10px}
+.layer{border-radius:10px;padding:14px 16px;border:1px solid var(--line);position:relative}
+.layer b{display:block;font-size:15px;margin-bottom:4px}
+.layer span{display:block;font-size:13px;color:#344255}
+.layer.build{background:var(--build)}
+.layer.reuse{background:var(--reuse)}
+.arrow{text-align:center;color:#6b7280;font-weight:700;letter-spacing:.08em;font-size:13px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
+.pillar{border:1px solid var(--line);border-radius:12px;padding:16px}
+.pillar.build{background:var(--build)}
+.pillar.reuse{background:var(--reuse)}
+.pillar h3{margin:0 0 10px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 0}
+.legend span{font-size:12px;border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#fff}
+.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:14px 0}
+.step{border:1px solid var(--line);border-radius:8px;padding:10px;background:#fafbfd}
+.step b{display:block;font-size:11px;color:#445}
+.step span{display:block;font-size:12px;margin-top:3px}
+.rule{display:grid;grid-template-columns:38px 1fr;gap:10px;align-items:start;margin:8px 0}
+.rule .n{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#1f3c55;color:#fff;font-weight:700;font-size:12px}
+footer{max-width:1240px;margin:0 auto;padding:0 24px 34px;color:#667085;font-size:12px}
+@media(max-width:980px){
+  .layout{grid-template-columns:1fr;padding:12px}
+  nav{position:static;max-height:none}
+  .meta{grid-template-columns:1fr 1fr;padding:0 16px}
+  main{padding:20px}
+  .grid3,.split,.flow{grid-template-columns:1fr}
+  h1{font-size:26px}
+}
+@media print{
+  body{background:#fff;font-size:11pt}
+  header{background:#fff;color:#000;padding:20px 0}
+  .layout{display:block;padding:0}
+  nav{display:none}
+  main{border:0;padding:0}
+  a{color:#000;text-decoration:none}
+  .arch,.card,.pillar,.table-wrap{break-inside:avoid}
+  table{min-width:0}
+}
+</style>
+</head>
+<body>
+<header>
+<div class="header-inner">
+<div class="eyebrow">HARNESS ENGINEERING / GENERIC DEVELOPMENT STANDARD</div>
+<h1>ハーネスエンジニアリング開発標準<br/>生成AIハーネスの構造理解と機能配置指針</h1>
+<p class="subtitle">生成AIを業務開発へ適用する際、何をハーネスエンジニアリングとして実装し、何を生成AI基盤の既存機能としてそのまま利用するかを切り分けるための標準。読み手にハーネス構造そのものを理解させ、各機能の適切な配置先を判断できる状態を目指す。</p>
+</div>
+<div class="meta">
+<div><b>文書ID</b>HARNESS-ENGINEERING-DEVELOPMENT-STANDARD</div>
+<div><b>版 / 状態</b>0.4 / DRAFT</div>
+<div><b>更新日</b>2026-09-18 Asia/Tokyo</div>
+<div><b>文書種別</b>開発標準（汎用）</div>
+</div>
+</header>
+<div class="layout">
+<nav>
+<h2>目次</h2>
+<a href="#s0">0. 概要</a>
+<a href="#s1">1. ハーネスエンジニアリングとは何か</a>
+<a href="#s2">2. ハーネス全体構造の図解</a>
+<a href="#s3">3. 開発する要素 / 開発しない要素</a>
+<a href="#s4">4. ハーネス構成要素と責務</a>
+<a href="#s4p">4.1 製品別の呼び方との対応例</a>
+<a href="#s5">5. 機能配置の判断手順</a>
+<a href="#s6">6. 要素別の配置基準</a>
+<a href="#s7">7. よくある機能の配置例</a>
+<a href="#s8">8. アンチパターン</a>
+<a href="#s9">9. 実装・検証・レビュー観点</a>
+<a href="#s10">10. 配置判断テンプレート</a>
+<a href="#s11">11. 開発上の主要留意点</a>
+<a href="#s12">12. 用語集</a>
+<a href="#s13">13. メーカー公式情報源</a>
+<a href="#s14">14. まとめ</a>
+</nav>
+<main>
+<section id="s0">
+<h2>0. 概要</h2>
+<p class="lead"><strong>結論：</strong>ハーネスエンジニアリングが開発すべきものは、<strong>業務や製品に固有な「制御・構成・責務分離・接続・根拠・検証」</strong>である。一方、<strong>Tokenizer（トークナイザー：文章をトークンへ分割する基盤機能）</strong>、推論エンジン、Attention / KV Cache（推論高速化の内部機構）、汎用Sampling（候補選択）、一般的なモデルServing（配信）などは、通常は生成AI基盤側をそのまま使う方がよい。</p>
+<div class="factbox">
+<span class="label">事実</span>
+    生成AIを業務へ適用するとき、実際に設計対象になるのは「モデルそのもの」よりも、<strong>入力をどう整え、どの責務へ渡し、どの順序で処理し、どの外部系へ安全につなぎ、出力をどう検証して配布するか</strong>という周辺構造である。
+  </div>
+<div class="viewbox">
+<span class="label">見解</span>
+    ハーネスエンジニアリングの中心は、<strong>AIを賢くすること</strong>ではなく、<strong>AIを業務で安全・再現可能・監査可能に働かせる構造を作ること</strong>にある。妥当性は <span class="conf">98%</span>。
+  </div>
+<div class="grid3">
+<div class="card"><h3>ハーネスの目的</h3><p>AIの能力をそのまま信じるのではなく、入力・判断・外部連携・証拠・完了判定を構造化する。</p></div>
+<div class="card"><h3>構造理解の要点</h3><p>「利用体験」「制御」「判断」「接続」「根拠」「検証」「基盤」の7視点に分けると理解しやすい。</p></div>
+<div class="card"><h3>配置判断の要点</h3><p>症状が出た場所ではなく、守るべき不変条件を恒久的に所有すべき要素へ配置する。</p></div>
+</div>
+</section>
+<section id="s1">
+<h2>1. ハーネスエンジニアリングとは何か</h2>
+<p>ハーネスエンジニアリングとは、生成AIを単体で使うのではなく、<strong>業務目的に沿って安全・安定・再利用可能に動作させるための周辺構造を設計・実装・運用すること</strong>である。</p>
+<h3>1.1 「モデル開発」との違い</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>観点</th><th>モデル開発</th><th>ハーネスエンジニアリング</th></tr></thead>
+<tbody>
+<tr><td>主対象</td><td>学習済みモデル、重み、推論品質</td><td>業務適用の構造、制御、接続、検証</td></tr>
+<tr><td>主な成果</td><td>精度、速度、学習結果</td><td>安全に使える業務システム、作業フロー、証拠、配布物</td></tr>
+<tr><td>典型的な関心</td><td>トークナイザー、推論最適化、GPU効率、デコーダ</td><td>入力設計、役割分担、権限制御、監査、再実行安全性</td></tr>
+<tr><td>変更頻度</td><td>基盤更新時</td><td>業務要件・接続先・運用要求の変化時</td></tr>
+</tbody>
+</table></div>
+<h3>1.2 ハーネスの役割</h3>
+<ul>
+<li>利用者の依頼を、AIが処理できる形へ変換する</li>
+<li>必要な文脈・資料・ソースコード・履歴を収集する</li>
+<li>どのAI役割が何を担当するかを分離する</li>
+<li>外部システム更新や配布を安全に制御する</li>
+<li>結果が要件を満たしたかを検証する</li>
+<li>同じ品質を繰り返し再現できるようにする</li>
+</ul>
+</section>
+<section id="s2">
+<h2>2. ハーネス全体構造の図解</h2>
+<p>ハーネスは、生成AIモデルそのものではなく、<strong>モデルの外側で「入力・規約・制御・判断・接続・根拠・検証」を組み合わせる実行構造</strong>です。製品ごとの名称ではなく、まず以下の一般構造を理解します。</p>
+<div class="arch"><div class="arch-title">図1：ハーネスエンジニアリングの一般構造</div><div class="stack">
+<div class="layer build"><b>① Interface / Ingress（利用者入口）</b><span>Chat、CLI、IDE拡張、設定画面、コマンド、進捗・エラー表示。利用者から仕事を受け取る層。</span></div><div class="arrow">↓</div>
+<div class="layer build"><b>② Policy / Instruction（規約・指示）</b><span>プロジェクト規約、禁止事項、命名規則、成果物条件、作業上の前提。「AIへ何を守らせるか」を定義する層。</span></div><div class="arrow">↓</div>
+<div class="layer build"><b>③ Orchestration / Control（工程制御）</b><span>Workflow、Graph、状態遷移、分岐、再試行、排他、権限、Hook、Guard、完了判定。「いつ・何を・どの順番で実行するか」を強制する層。</span></div><div class="arrow">↓</div>
+<div class="layer build"><b>④ Reasoning Role / Procedure（判断責務・作業手順）</b><span>Agent、Subagent、Role、Skill、Procedure。設計・分析・レビューなど「AIに何を考えさせるか」と、その標準手順を定義する層。</span></div><div class="arrow">↓</div>
+<div class="layer build"><b>⑤ Tool / Context / Knowledge Access（道具・文脈・知識アクセス）</b><span>Tool、Adapter、MCP、検索、Git、DB、文書、課題管理、静的解析、Evidence、Knowledge。「AIが何を読めるか・操作できるか」を定義する層。</span></div><div class="arrow">↓</div>
+<div class="layer build"><b>⑥ Verification / Observability / Distribution（検証・観測・配布）</b><span>検証、Readback、Traceability、ログ、監査証跡、Package、署名、Release、導入確認。「本当に正しくできたか」を証明する層。</span></div><div class="arrow">↓</div>
+<div class="layer reuse"><b>⑦ GenAI Runtime / Foundation（生成AI基盤）</b><span>Tokenizer、Embedding、Transformer、Attention、KV Cache、Sampling、Batching、Model Serving。通常は既存基盤をそのまま利用する。</span></div>
+</div></div>
+<div class="factbox"><span class="label">構造上のポイント</span>①〜⑥が主にハーネスエンジニアリングの開発対象、⑦が主に生成AI基盤側です。上へ行くほど業務固有、下へ行くほど共通基盤になります。</div>
+<div class="viewbox"><span class="label">見解</span>製品名や設定ファイル名より先に、この7層構造で「どこが責任を持つべきか」を理解すると、Codex・Claude Code・Cursorなど製品が変わっても設計判断を再利用できます。妥当性は <span class="conf">99%</span>。</div>
+</section>
+<section id="s3">
+<h2>3. 開発する要素 / 開発しない要素</h2>
+<div class="split">
+<div class="pillar build">
+<h3>図2：ハーネスエンジニアリングとして開発する要素</h3>
+<ul>
+<li>利用者入口、初回設定、診断、設定画面</li>
+<li>依頼の分類、権限区分、作業契約</li>
+<li>工程制御、状態遷移、再開、排他、完了判定</li>
+<li>役割別Agent、プロンプト方針、出力契約</li>
+<li>業務システム接続、Adapter、静的解析、知識化</li>
+<li>証拠管理、追跡可能性、Readback</li>
+<li>検証、配布、導入確認、Release</li>
+</ul>
+<div class="legend">
+<span>業務固有</span><span>監査対象</span><span>要件差が出る</span><span>ハーネスの価値そのもの</span>
+</div>
+</div>
+<div class="pillar reuse">
+<h3>図3：通常は生成AI基盤をそのまま使う要素</h3>
+<ul>
+<li>Tokenizer（トークナイザー）</li>
+<li>Embedding Encoder（埋め込み生成器）</li>
+<li>Transformer / Attention 本体</li>
+<li>KV Cache、Paged Attention 等の推論高速化機構</li>
+<li>Decoding / Sampling（生成候補の選択）</li>
+<li>Batching / Scheduling（推論実行の束ね処理）</li>
+<li>Model Serving Runtime（モデル配信基盤）</li>
+<li>ベンダーSDKの低レベル通信</li>
+</ul>
+<div class="legend">
+<span>共通基盤</span><span>業務差が少ない</span><span>再実装コスト大</span><span>保守責任が重い</span>
+</div>
+</div>
+</div>
+<div class="warnbox">
+<strong>重要：</strong>「開発しない」は「絶対に触れない」ではない。例えばオンプレミス推論、厳しいコスト制約、独自モデル、特殊なマルチモーダル最適化がある場合は基盤側を調整することもある。ただし、その場合は<strong>ハーネス拡張ではなく、モデル基盤開発</strong>として別の責務で扱う。
+  </div>
+</section>
+<section id="s4">
+<h2>4. ハーネス構成要素と責務</h2><p>以下は製品固有ではなく、ハーネスエンジニアリングとして一般化した構成要素です。</p>
+<div class="table-wrap"><table><thead><tr><th>一般的な構成要素</th><th>責務</th><th>ここへ配置する機能</th><th>ここへ置かないもの</th></tr></thead><tbody>
+<tr><td><strong>Interface / Ingress</strong></td><td>利用者との接点</td><td>設定画面、入力、コマンド、進捗、エラー表示</td><td>業務判定の正本、権限制御の正本</td></tr>
+<tr><td><strong>Policy / Instruction</strong></td><td>AIへ守るべき規約を伝える</td><td>命名規則、禁止事項、成果物条件、プロジェクト方針</td><td>絶対に破ってはいけない安全制約の最終強制</td></tr>
+<tr><td><strong>Orchestration / Graph</strong></td><td>作業の流れを定義する</td><td>順序、分岐、合流、繰返し、差戻し、並行処理</td><td>単なる接続先差、単一技術差</td></tr>
+<tr><td><strong>Controller / Guard / Hook</strong></td><td>決定論的な統制</td><td>権限、排他、再試行、危険操作拒否、完了判定、Readback強制</td><td>曖昧な文章理解や設計判断</td></tr>
+<tr><td><strong>Reasoning Role / Agent</strong></td><td>AIの判断責務</td><td>要件整理、設計、分析、レビュー、説明生成</td><td>同じ入力なら同じ結果にすべき機械判定</td></tr>
+<tr><td><strong>Procedure / Skill</strong></td><td>特定作業の標準手順を再利用する</td><td>コードレビュー手順、Release手順、調査手順</td><td>全作業へ常時入れる長大な規約本文</td></tr>
+<tr><td><strong>Tool / Adapter / MCP</strong></td><td>外部系への操作・接続差吸収</td><td>Git、DB、課題管理、文書管理、検索、API接続</td><td>業務シナリオ全体の工程制御</td></tr>
+<tr><td><strong>Context / Knowledge / Evidence</strong></td><td>AIへ必要事実を供給する</td><td>文書検索、静的解析、RAG、Evidence、Knowledge Snapshot</td><td>外部更新の最終実行可否</td></tr>
+<tr><td><strong>Verification / Observability</strong></td><td>結果の成立・状態を確認する</td><td>Quality Gate、Readback、ログ、Traceability、監査</td><td>利用者入力UI</td></tr>
+<tr><td><strong>Packaging / Distribution</strong></td><td>ハーネス部品を配布・導入する</td><td>Plugin、Package、署名、Release、Installer、Rollback</td><td>LLM内部推論</td></tr>
+<tr><td><strong>GenAI Runtime / Foundation</strong></td><td>モデルを動かす共通基盤</td><td>Tokenizer、Attention、KV Cache、Sampling、Serving</td><td>業務固有の制御・接続・監査</td></tr>
+</tbody></table></div>
+</section>
+<section id="s4p">
+<h2>4.1 製品別の呼び方との対応例</h2>
+<p>本文は一般用語で理解してください。下表は、Codex・Claude Code・Cursorで目にする名称が<strong>一般構造のどこに該当するか</strong>を補足するものです。</p>
+<div class="table-wrap"><table><thead><tr><th>一般概念</th><th>Codex / OpenAI系での例</th><th>Claude Codeでの例</th><th>Cursorでの例</th></tr></thead><tbody>
+<tr><td><strong>Policy / Instruction</strong></td><td><code>AGENTS.md</code>、Agent instructions</td><td><code>CLAUDE.md</code>、Rules</td><td>Project / User / Team Rules、<code>AGENTS.md</code></td></tr>
+<tr><td><strong>Procedure / Skill</strong></td><td>Skills</td><td>Skills / <code>SKILL.md</code></td><td>Skills / <code>SKILL.md</code></td></tr>
+<tr><td><strong>Controller / Guard / Hook</strong></td><td>Permissions、Sandbox、Tool制御、Workflow側の強制処理</td><td>Hooks、Permissions</td><td>Hooks、Permission / workspace controls</td></tr>
+<tr><td><strong>Reasoning Role / Agent</strong></td><td>Agent / Subagent</td><td>Subagents</td><td>Agents / Subagents</td></tr>
+<tr><td><strong>Tool / Adapter / MCP</strong></td><td>Tools、MCP</td><td>Tools、MCP</td><td>Tools、MCP Servers</td></tr>
+<tr><td><strong>Interface / Ingress</strong></td><td>CLI、Agent entry、Prompt entry</td><td>CLI、Slash command</td><td>Agent Chat、Commands</td></tr>
+<tr><td><strong>Packaging / Distribution</strong></td><td>Plugins / Skills / MCP等の配布単位</td><td>Plugins / extensions</td><td>Plugins</td></tr>
+</tbody></table></div>
+<div class="tipbox"><strong>読み替え方：</strong>Claude CodeのHookだから特別な構造なのではありません。一般構造では <strong>Controller / Guard / Hook</strong> に該当します。同様に、<code>CLAUDE.md</code> や <code>AGENTS.md</code> は <strong>Policy / Instruction</strong>、Skillsは <strong>Procedure / Skill</strong>、MCPは <strong>Tool / Adapter / MCP</strong> と理解します。</div>
+</section>
+<section id="s5">
+<h2>5. 機能配置の判断手順</h2><p>配置先は、製品の機能名ではなく<strong>「その機能が何を責任として持つか」</strong>で判断します。</p>
+<h3>5.1 この順番で判断する</h3>
+<div class="table-wrap"><table><thead><tr><th>順番</th><th>確認すること</th><th>該当する配置先</th><th>具体例</th></tr></thead><tbody>
+<tr><td>1</td><td><strong>利用者が見る・入力する部分ですか？</strong><br/>画面、コマンド、エラー、進捗など。</td><td>Interface / Ingress</td><td>設定画面を追加する、エラー文を分かりやすくする</td></tr>
+<tr><td>2</td><td><strong>AIへ「こう振る舞う」と教える規約ですか？</strong><br/>命名規則、禁止事項、成果物条件など。</td><td>Policy / Instruction</td><td>「このリポジトリでは直接mainへ書かない」</td></tr>
+<tr><td>3</td><td><strong>作業の順番・分岐・差戻しを決めるものですか？</strong></td><td>Orchestration / Graph</td><td>レビュー合格後だけReleaseへ進む</td></tr>
+<tr><td>4</td><td><strong>AIが忘れても、必ず同じ判定・制御をさせたいですか？</strong><br/>または危険操作を機械的に止めたいですか？</td><td>Controller / Guard / Hook</td><td>危険SQL拒否、排他制御、保存後Readback強制</td></tr>
+<tr><td>5</td><td><strong>意味を理解して、分析・設計・レビューなどをAIに考えさせる仕事ですか？</strong></td><td>Reasoning Role / Agent</td><td>要件整理、変更影響分析、独立レビュー</td></tr>
+<tr><td>6</td><td><strong>特定作業の詳しい標準手順ですか？</strong><br/>全作業に常時必要ではなく、該当作業時だけ必要ですか？</td><td>Procedure / Skill</td><td>Release手順、コードレビュー手順</td></tr>
+<tr><td>7</td><td><strong>外部システムや実操作へ接続するものですか？</strong></td><td>Tool / Adapter / MCP</td><td>Git、DB、課題管理、文書管理API</td></tr>
+<tr><td>8</td><td><strong>AIが判断するための資料・根拠・検索結果を供給するものですか？</strong></td><td>Context / Knowledge / Evidence</td><td>RAG、静的解析、設計書検索、Evidence取得</td></tr>
+<tr><td>9</td><td><strong>結果が正しいか、保存・公開後も成立しているかを確認するものですか？</strong></td><td>Verification / Observability</td><td>Quality Gate、Readback、Traceability</td></tr>
+<tr><td>10</td><td><strong>成果物・ハーネス部品を配布・導入・更新するものですか？</strong></td><td>Packaging / Distribution</td><td>Plugin、Package、Release、Installer</td></tr>
+<tr><td>11</td><td><strong>モデル内部の推論・トークン処理・高速化ですか？</strong></td><td>GenAI Runtime / Foundation</td><td>Tokenizer、Attention、KV Cache、Sampling</td></tr>
+</tbody></table></div>
+<h3>5.2 Instruction・Skill・Hookで迷う場合</h3>
+<div class="grid3"><div class="card"><h3>Policy / Instruction</h3><p><strong>「普段から守ること」</strong><br/>短い規約・禁止事項・プロジェクト方針。</p></div><div class="card"><h3>Procedure / Skill</h3><p><strong>「この仕事のときに使う詳しい手順」</strong><br/>レビュー、Release、障害調査など。</p></div><div class="card"><h3>Controller / Hook</h3><p><strong>「AIが忘れても必ず強制すること」</strong><br/>危険操作拒否、編集後検査、監査ログ等。</p></div></div>
+<div class="viewbox"><span class="label">見解</span>「AIへ伝える情報」「AIに考えさせる仕事」「AIの外側で強制する制御」を分けると、配置判断が最も安定します。妥当性は <span class="conf">99%</span>。</div>
+</section>
+<section id="s6">
+<h2>6. 要素別の配置基準</h2>
+<h3>6.1 Interface / Ingress に配置する場合</h3>
+<ul><li>利用者が迷う、入力しにくい、状況が分からない</li><li>前提不足を事前に診断したい</li><li>エラーを利用者向けに翻訳したい</li></ul>
+<p><strong>置かない方がよいもの：</strong>承認可否の正本、工程完了判定の正本、外部更新の最終実行判定。</p>
+<h3>6.2 Policy / Instruction に配置する場合</h3>
+<ul><li>調査なのか、修正なのか、レビューなのかで処理を変える</li><li>READ_ONLY（読取専用）か CHANGE_ALLOWED（変更許可）かを分ける</li><li>成果物形式や必須出力を固定する</li></ul>
+<h3>6.3 Orchestration / Graph に配置する場合</h3>
+<ul><li>工程の数や順番を変えたい</li><li>レビュー後だけ配布へ進みたい</li><li>失敗時にどこへ戻すかを固定したい</li></ul>
+<h3>6.4 Controller / Guard / Hook に配置する場合</h3>
+<ul><li>同じ入力なら必ず同じ判定にしたい</li><li>権限、排他、Scope、完了条件を機械的に守りたい</li><li>DB更新やRelease作成など外部副作用を安全に実行したい</li></ul>
+<h3>6.5 Reasoning Role / Agent に配置する場合</h3>
+<ul><li>文書要約、設計案作成、説明文生成、レビューコメント作成のように、意味理解や推論が必要</li><li>同じ根拠でも複数の妥当な表現があり得る</li><li>出力が文章や提案であり、後続で検証可能</li></ul>
+<h3>6.6 Tool / Adapter / MCP に配置する場合</h3>
+<ul><li>機能の本質は同じで、接続先だけが違う</li><li>課題管理製品やストレージ製品の差を吸収したい</li><li>認証方式差、API差、データ形式差が主要論点</li></ul>
+<h3>6.7 Context / Knowledge / Evidence に配置する場合</h3>
+<ul><li>AIが必要な根拠を持てていない</li><li>ソースコードや文書から構造情報を抽出したい</li><li>変更影響範囲を事実ベースで絞りたい</li></ul>
+<h3>6.8 Verification / Distribution に配置する場合</h3>
+<ul><li>成果物が本当に成立しているかを証明したい</li><li>Package後、Installer後、配布後の起動確認が必要</li><li>公開、更新、Rollback を扱いたい</li></ul>
+<h3>6.9 GenAI Runtime / Foundation をそのまま使う場合</h3>
+<ul><li>要件差が小さく、共通基盤のままで十分</li><li>カスタマイズコストより利用価値が低い</li><li>業務差分がTokenizerやSamplingではなく、その前後の制御や文脈にある</li></ul>
+</section>
+<section id="s7">
+<h2>7. よくある機能の配置例</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>実現したいこと</th><th>配置先</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>初回設定で前提不足を分かりやすく伝えたい</td><td>Interface / Ingress</td><td>利用者向け診断と案内の問題</td></tr>
+<tr><td>依頼が調査なら書込み禁止にしたい</td><td>Work Contract + Controller</td><td>依頼契約で意味を定義し、Controllerが機械的に強制する</td></tr>
+<tr><td>レビュー合格後だけ配布へ進ませたい</td><td>Orchestration / Graph</td><td>工程順序とゲートの問題</td></tr>
+<tr><td>同じ公開処理を二重実行したくない</td><td>Controller + Verification / Distribution</td><td>再実行安全性と配布実行の問題</td></tr>
+<tr><td>要件説明文を読みやすく要約したい</td><td>Reasoning Role / Agent</td><td>推論・表現の問題</td></tr>
+<tr><td>複数の課題管理製品へ同じ機能で登録したい</td><td>Tool / Adapter / MCP</td><td>接続差の吸収が本質</td></tr>
+<tr><td>ソースからCRUDや呼出関係を抽出したい</td><td>Context / Knowledge / Evidence</td><td>事実抽出と知識化の問題</td></tr>
+<tr><td>配布物に必要な依存関係を漏らさず同梱したい</td><td>Verification / Distribution</td><td>成果物実体の成立証明の問題</td></tr>
+<tr><td>トークン分割の仕組みを業務向けに変えたい</td><td>通常は配置しない（基盤再利用）</td><td>業務固有差ではなく基盤共通。特別な理由がない限り再実装しない</td></tr>
+<tr><td>推論速度を大きく改善したい</td><td>通常は配置しない（基盤最適化）</td><td>ハーネスではなくモデル基盤・推論基盤の責務</td></tr>
+<tr><td>毎回、同じコーディング規約を守らせたい</td><td>Instructions / Rules</td><td>常設の行動規約。AGENTS.md、CLAUDE.md、Cursor Rules等</td></tr><tr><td>コードレビューの標準手順を必要なときだけ使いたい</td><td>Skill</td><td>常時Contextへ入れず、レビュー時だけ詳しい手順を読む</td></tr><tr><td>ファイル編集後に必ずFormatterを動かしたい</td><td>Hook / Controller</td><td>AIに忘れず実行させるより、イベントで自動実行する方が確実</td></tr><tr><td>Shell実行前に危険なコマンドを拒否したい</td><td>Hook / Permission / Guard</td><td>安全要件はPromptではなく決定論的に強制する</td></tr><tr><td>別文脈でセキュリティレビューを実行したい</td><td>Subagent</td><td>専門責務とContextを分離し、結果だけ主Agentへ戻す</td></tr><tr><td>社内APIをAIから呼びたい</td><td>MCP / Tool / Adapter</td><td>外部システム接続の責務</td></tr></tbody>
+</table></div>
+</section>
+<section id="s8">
+<h2>8. アンチパターン</h2>
+<div class="rule"><div class="n">1</div><div><strong>何でもAgentに入れる。</strong><br/><span class="small">制御や機械判定までLLMへ委ねると、再現性・監査性・安全性が下がる。</span></div></div>
+<div class="rule"><div class="n">2</div><div><strong>UIで症状だけを隠す。</strong><br/><span class="small">根本原因が配布物や制御にあるのに、入口だけ修正すると別経路で再発する。</span></div></div>
+<div class="rule"><div class="n">3</div><div><strong>接続先ごとにWorkflow全体を複製する。</strong><br/><span class="small">Provider差はAdapterで吸収し、全体制御を複製しない。</span></div></div>
+<div class="rule"><div class="n">4</div><div><strong>Tokenizerや推論基盤を安易に作り直す。</strong><br/><span class="small">再実装コストと保守責任が大きく、業務価値に直結しにくい。</span></div></div>
+<div class="rule"><div class="n">5</div><div><strong>完了判定を複数箇所に持つ。</strong><br/><span class="small">UI、Agent、Controller、テストで別々の完了条件を持つと整合しなくなる。</span></div></div>
+<div class="rule"><div class="n">6</div><div><strong>局所テストだけで完了とする。</strong><br/><span class="small">入口から終端までの代表経路を通さず、通常運用で使えない状態を見逃す。</span></div></div>
+</section>
+<section id="s9">
+<h2>9. 実装・検証・レビュー観点</h2>
+<h3>9.1 実装観点</h3>
+<ul>
+<li>Primary Owner（主責任要素）は1つに固定されているか</li>
+<li>同じ判定や状態の正本が複数に増えていないか</li>
+<li>判断と制御が分離されているか</li>
+<li>接続差だけで全体構造を複製していないか</li>
+</ul>
+<h3>9.2 検証観点</h3>
+<ul>
+<li>要素の直接試験：その要素の責務を単体で検証できるか</li>
+<li>代表経路試験：入口から終端まで正常に流れるか</li>
+<li>再実行安全性：同じ実行を繰り返しても破壊的副作用が増えないか</li>
+<li>Readback：保存・公開・配布後の実体を再取得して確認しているか</li>
+</ul>
+<h3>9.3 レビュー観点</h3>
+<ul>
+<li>なぜその機能をその要素へ置いたのか説明できるか</li>
+<li>基盤側でよいものをハーネス側へ持ち込んでいないか</li>
+<li>ハーネス固有の価値を出す部分へ工数が使われているか</li>
+<li>運用負荷を増やすだけの構成追加になっていないか</li>
+</ul>
+</section>
+<section id="s10">
+<h2>10. 配置判断テンプレート</h2>
+<p>機能追加や課題修正の前に、以下を記載しておくと配置ミスが減る。</p>
+<pre>PLACEMENT_DECISION
+feature_or_issue=&lt;対象名&gt;
+user_visible_symptom=&lt;表面症状&gt;
+root_cause=&lt;根本原因&gt;
+business_specific=YES|NO
+deterministic=YES|NO
+requires_llm_judgement=YES|NO
+external_side_effect=YES|NO
+changes_workflow=YES|NO
+connection_specific=YES|NO
+needs_context_or_evidence=YES|NO
+needs_post_build_proof=YES|NO
+primary_owner=&lt;Experience|TaskIntent|Graph|Controller|Agent|Adapter|Context|Verification|Foundation&gt;
+why_here=&lt;この要素へ置く理由&gt;
+why_not_lower=&lt;基盤側へ置かない理由&gt;
+why_not_higher=&lt;UIやWorkflowへ逃がさない理由&gt;
+direct_test=&lt;責務要素の直接試験&gt;
+end_to_end_test=&lt;代表経路試験&gt;</pre>
+<div class="tipbox">
+<strong>実務運用のコツ：</strong> 新しい要素を作る前に、まず <code>REUSE（再利用）</code> → <code>EXTEND（既存拡張）</code> → <code>ADAPT（接続差吸収）</code> → <code>COMPOSE（組合せ）</code> を確認し、それでも無理なときだけ <code>CREATE（新設）</code> とする。
+  </div>
+</section>
+<section id="s11">
+<h2>11. 開発上の主要留意点 — AIメーカー公式ガイダンスから抽出した共通原則</h2>
+<p class="lead">ハーネスエンジニアリングでは、Context量だけでなく、<strong>権限、実行境界、外部情報の信頼性、Tool設計、検証、承認、Agent分割、監査、回復性</strong>まで設計対象にする必要があります。本章はOpenAI、Anthropic、Cursorの公式文書に現れる主要な注意事項を、製品固有機能ではなく一般的な開発標準へ変換したものです。</p>
+<div class="factbox">
+<span class="label">共通傾向</span>
+3社の表現や実装方法は異なりますが、共通して「LLMへの指示だけに依存しない」「Tool権限を限定する」「外部入力を信用しない」「重要操作には追加制御を置く」「結果を検証する」「実行を観測可能にする」という多層防御の考え方が確認できます。
+</div>
+<h3>11.1 Contextは有限資源として扱う</h3>
+<p><strong>原則：</strong> 常時Contextへ入れる情報は最小化し、必要なRule、Skill、資料、Toolだけを必要時にロードする。</p>
+<ul>
+<li>長いInstruction、会話履歴、Tool定義、MCPカタログ、資料を全部投入しない。</li>
+<li>詳細な作業手順はProcedure / Skillへ分離する。</li>
+<li>調査はSubagent等の別Contextへ分離し、主Contextには結論と根拠だけを返す。</li>
+<li>Compaction（文脈圧縮）を前提に、重要なID・決定・未完事項・成果物位置を外部Stateへ保存する。</li>
+</ul>
+<div class="warnbox"><strong>設計上の注意：</strong> 「重要だからInstructionを増やす」は逆効果になり得ます。Anthropicは長いContextで以前のInstructionを忘れたり誤りが増え得ることを明記し、CursorもSummaryへの圧縮に情報損失があることを説明しています。OpenAIもSkillsやInstruction filesの競合を監査するよう推奨しています。</div>
+<h3>11.2 最小権限と「読取 / 変更」の分離</h3>
+<p><strong>原則：</strong> Agentへ最初から広い権限を渡さない。読取、編集、Shell、Network、外部更新を別権限として扱う。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>操作</th><th>標準</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>ファイル・資料の読取</td><td>必要Scopeのみ許可</td><td>不要な機密情報やPrompt Injection源をContextへ持ち込まない</td></tr>
+<tr><td>ファイル編集</td><td>Workspace / Repository境界内へ限定</td><td>意図しない領域の変更を防ぐ</td></tr>
+<tr><td>Shell実行</td><td>Sandbox + allow / ask / deny</td><td>LLMの誤判断をOS境界で抑える</td></tr>
+<tr><td>外部更新</td><td>対象・操作種別を限定</td><td>メール送信、課題更新、DB更新等の副作用を局所化する</td></tr>
+<tr><td>Network</td><td>必要先のみAllowlist</td><td>情報流出・Prompt Injection後の外部送信を制限する</td></tr>
+</tbody>
+</table></div>
+<p>AnthropicはPermission ruleを「モデルではなくClaude Code側で強制」と明記し、CursorもSandbox・Permission・Network controlの併用を案内しています。OpenAIもAgentのSensitive data / credential accessを必要最小限へ限定することを推奨しています。</p>
+<h3>11.3 Prompt / Ruleは「誘導」、必須制約は決定論的に強制する</h3>
+<p><strong>原則：</strong> 「絶対にしてはいけないこと」をInstructionだけに書かない。</p>
+<ul>
+<li>削除禁止 → Permission / Guardで拒否</li>
+<li>本番DB書込み禁止 → Tool surface自体を除外、またはControllerで拒否</li>
+<li>特定Domain以外への送信禁止 → Network egressで強制</li>
+<li>検証未完了で終了禁止 → Deterministic gate（決定論的ゲート）で強制</li>
+<li>秘密ファイル参照禁止 → File access制御で強制</li>
+</ul>
+<p>CursorはRulesを非決定論的なSteering（誘導）として扱い、決定論的なApprovals / Hooks / Sandboxingと組み合わせる多層防御を推奨しています。AnthropicでもPermission rulesはPromptとは別の実行制御として評価されます。</p>
+<h3>11.4 外部コンテンツは「データ」であり「命令」ではない</h3>
+<p><strong>原則：</strong> Web、Email、Issue、文書、MCPの戻り値など、外部から取得した内容にはPrompt Injectionが含まれ得る前提で設計する。</p>
+<ul>
+<li>外部コンテンツから得た「命令」を、そのまま上位Instructionとして扱わない。</li>
+<li>Untrusted input（未信頼入力）とSensitive sink（機密送信・外部更新）を同じAgentに無制限で与えない。</li>
+<li>Web検索・文書読取Agentと、外部更新Agentを分けることを検討する。</li>
+<li>外部データから高リスク操作へ到達するときはController / Approval gateを通す。</li>
+</ul>
+<p>OpenAIはPrompt Injectionを「外部コンテンツ中の指示による社会工学」と捉え、完全検知だけでなく、仮に誘導されても被害を制限する設計を推奨しています。AnthropicもWeb取得を隔離Contextで扱うなどの対策を説明し、CursorもCloud AgentでPrompt Injectionとデータ流出を主要Riskとして扱っています。</p>
+<h3>11.5 Tool / MCPは「便利な接続」ではなく「権限境界」として設計する</h3>
+<p><strong>原則：</strong> Tool / MCPの数を増やす前に、そのToolが何を読めるか、何を変更できるか、何を外へ送れるかを定義する。</p>
+<ul>
+<li>Read ToolとWrite Toolを分離する。</li>
+<li>広すぎる万能Toolより、目的別に狭いToolを優先する。</li>
+<li>Tool input / outputは可能ならSchemaで型付けする。</li>
+<li>MCP Serverは信頼済みProvider / 自社実装を優先し、導入元を管理する。</li>
+<li>PluginがRules、Skills、MCP、Hooks等をまとめて追加する場合、導入物全体をSupply Chain（供給網）としてレビューする。</li>
+</ul>
+<p>OpenAIはToolを標準化・文書化・テスト可能・再利用可能にすることを推奨しています。AnthropicはMCP Serverを自作または信頼できるProviderから利用するよう推奨し、CursorもPlugin / MCPをTrust decision（信頼判断）として扱っています。</p>
+<h3>11.6 高リスク・不可逆操作にはHuman-in-the-loop（人による最終関与）を置く</h3>
+<p><strong>原則：</strong> 自動化率を上げることと、承認をなくすことは同義ではない。</p>
+<ul>
+<li>高額・不可逆・外部公開・本番変更はHuman approval候補とする。</li>
+<li>承認画面では「何を」「どこへ」「どの値で」実行するかを具体的に示す。</li>
+<li>準備作業は承認前に完了させ、承認を最後の1ステップへ寄せる。</li>
+<li>低リスクのRead-onlyやReversible operationは過剰承認を避ける。</li>
+</ul>
+<p>OpenAIは高リスク・不可逆操作で人へのEscalationを推奨し、Sensitive actionは具体的な結果を確認できる状態で承認させる考え方を示しています。Cursor・Claude Codeも高Risk Tool callにApproval / Askを置けます。</p>
+<h3>11.7 Approval fatigue（承認疲れ）を設計上のRiskとして扱う</h3>
+<p><strong>原則：</strong> 何でも確認させると、利用者は内容を読まずに承認するようになる。</p>
+<ul>
+<li>安全なRead-only操作はAllowlist化する。</li>
+<li>Sandbox内で安全に閉じ込められる操作は自動化する。</li>
+<li>危険操作だけをAskへ残す。</li>
+<li>Approvalの粒度は「コマンド数」ではなく「リスク境界」で設計する。</li>
+</ul>
+<p>Anthropicは、多数のPermission promptが続くと実質的に確認しなくなる問題を明示し、Allowlist / Auto mode / Sandboxで中断回数を減らすことを推奨しています。</p>
+<h3>11.8 Explore / Plan / Execute / Verifyを混同しない</h3>
+<p><strong>原則：</strong> 調査中に変更しない。設計中に本番操作しない。実装後は検証を別工程として行う。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>工程</th><th>主な権限</th><th>成果</th></tr></thead>
+<tbody>
+<tr><td>Explore</td><td>Read中心</td><td>現状・原因・関連箇所</td></tr>
+<tr><td>Plan</td><td>Read中心</td><td>変更Scope、手順、Acceptance criteria</td></tr>
+<tr><td>Execute</td><td>必要なWrite / Toolのみ</td><td>変更実体</td></tr>
+<tr><td>Verify</td><td>Read + Test</td><td>成立証拠、反例、残課題</td></tr>
+<tr><td>Publish</td><td>明示的な外部Write</td><td>Release / Deploy / Merge等</td></tr>
+</tbody>
+</table></div>
+<p>Anthropicは「Explore first, then plan, then code」を明示し、Plan modeをRead-onlyとして分離しています。これは一般的なハーネスでも有効な責務境界です。</p>
+<h3>11.9 「出来た」ではなく、機械的に検証できる完了条件を与える</h3>
+<p><strong>原則：</strong> LLMの自己申告をCompletion（完了）の根拠にしない。</p>
+<ul>
+<li>Test exit code、Build結果、Schema validation、差分、Screenshot比較などPass / Failを返せる検証を用意する。</li>
+<li>Agentには「証拠を提示」させる。成功と言うだけでは完了にしない。</li>
+<li>重要な完了条件はStop hook / Controller / CI等の決定論的Gateにする。</li>
+<li>保存や公開ではAPI responseだけでなくReadbackする。</li>
+</ul>
+<p>AnthropicはAgentが自分で確認できるPass / Fail signalを与えることを強く推奨し、「検証できなければShipしない」と明示しています。OpenAIもEvalsでPerformance baselineを作ることを推奨しています。</p>
+<h3>11.10 独立レビューは「別Context」で行う</h3>
+<p><strong>原則：</strong> 実装したAgent自身に最終品質判定を完結させない。</p>
+<ul>
+<li>Fresh context（新しい文脈）のReviewerへDiffとAcceptance criteriaだけを渡す。</li>
+<li>「欠陥を探す」Reviewerと「要件適合を見る」Reviewerを必要に応じて分離する。</li>
+<li>レビュー所見は必須修正と改善提案を区別する。</li>
+</ul>
+<p>Anthropicは長時間自律作業ほどFresh subagentによるAdversarial review（反証レビュー）の重要性が高まると案内しています。CursorもSecurity Agent / Review Skillなど独立レビュー機能を提供しています。</p>
+<h3>11.11 Agentは最初から増やさない</h3>
+<p><strong>原則：</strong> Multi-agentは目的ではなく、単一Agentの責務が明確に破綻したときの解決手段とする。</p>
+<ul>
+<li>まずSingle agent + 明確なTools + Skillsで成立するか確認する。</li>
+<li>複雑な条件分岐が増えすぎた場合、Agent分割を検討する。</li>
+<li>Toolの名称・Parameterが似すぎて選択ミスが続く場合、Agent分割を検討する。</li>
+<li>調査・検証などContext隔離の価値が高い場合、Subagentを利用する。</li>
+</ul>
+<p>OpenAIはまずSingle-agentの能力を最大化し、必要な場合のみMulti-agentへ進むことを推奨しています。Agent数増加はOrchestration・評価・障害解析の複雑性も増やします。</p>
+<h3>11.12 Observability（可観測性）とAudit trail（監査証跡）を標準装備する</h3>
+<p><strong>原則：</strong> Agentの最終回答だけでなく、何を読み、どのToolを使い、どの状態へ遷移し、何を更新したかを追跡できるようにする。</p>
+<ul>
+<li>Run ID / Task ID / Agent role / Model / Tool call / Result / State transitionを記録する。</li>
+<li>機密情報はLogへそのまま残さない。</li>
+<li>失敗・拒否・Approval・RetryもEventとして記録する。</li>
+<li>品質改善では本番EvidenceをEvalsへ戻せる構造にする。</li>
+</ul>
+<p>OpenAI Agents SDKはTracing &amp; Observabilityを構成要素として提供し、AnthropicはOpenTelemetry監視、CursorはAudit logs / Hooksによる観測を推奨しています。</p>
+<h3>11.13 失敗回数・Loop・自律実行には上限を設ける</h3>
+<p><strong>原則：</strong> 「成功するまで無限に考え続ける」Agentを作らない。</p>
+<ul>
+<li>最大Turn、Retry、同一失敗回数を設定する。</li>
+<li>連続失敗時は別戦略へ切替えるかHumanへEscalateする。</li>
+<li>同じ修正を反復する兆候を検知する。</li>
+<li>停止理由と最後のEvidenceを残す。</li>
+</ul>
+<p>OpenAIはFailure threshold超過をHuman interventionの典型Triggerとして案内しています。Anthropicも自律ModeでSafety classifierが繰返しBlockした場合にAbortする設計を示しています。</p>
+<h3>11.14 Rollback（戻せること）をAutonomy（自律性）の前提にする</h3>
+<p><strong>原則：</strong> AgentへWrite権限を与えるほど、元へ戻せる仕組みを強くする。</p>
+<ul>
+<li>Source変更はVersion control配下で行う。</li>
+<li>Agent変更はBranch / Worktree等で分離する。</li>
+<li>External side effectは可能なら冪等にし、Rollback手段を用意する。</li>
+<li>Checkpoint機能があってもGit等の正式な変更管理を代替しない。</li>
+</ul>
+<p>CursorはAgentによるWorkspace変更にVersion controlを使うよう推奨し、AnthropicもCheckpointはGitの代替ではないと明記しています。</p>
+<h3>11.15 Secrets・認証情報・Network egressをContextから隔離する</h3>
+<p><strong>原則：</strong> 「Agentが使える」と「LLMへ値を見せる」を分ける。</p>
+<ul>
+<li>Secret値はModelへ渡さず、Runtime側でInjection / Proxyする。</li>
+<li>短寿命CredentialやScoped tokenを優先する。</li>
+<li>不要な.env、秘密鍵、個人情報TreeをAgent読取対象から除外する。</li>
+<li>Network egressはAllowlistを基本とする。</li>
+</ul>
+<p>Cursor Cloud AgentはRuntime secretをTranscript / Tool output / Commitから除外する仕組みを説明しています。AnthropicもCloud実行でScoped credentialとNetwork制御を使用しています。</p>
+<h3>11.16 CI・定期実行では「利用者PCの偶然の設定」に依存しない</h3>
+<p><strong>原則：</strong> 自動実行時は、読込むRules、Skills、Hooks、MCP、Permissionを明示し、誰の端末でも同じ条件にする。</p>
+<ul>
+<li>User-local設定を暗黙に読まない。</li>
+<li>実行に必要なPlugin / Skill / MCP versionを固定・確認する。</li>
+<li>実行開始時にLoaded configurationを記録する。</li>
+<li>開発者のローカル成功をそのままCI成功と見なさない。</li>
+</ul>
+<p>AnthropicはScript / CI向けに、ローカルのHooks、Skills、Plugins、MCP等を自動発見しないBare modeを推奨しています。これは一般化すると「非対話実行は明示Configurationで再現可能にする」という原則です。</p>
+<h3>11.17 Model・Skill・Rule変更はEvals（評価）で回帰確認する</h3>
+<p><strong>原則：</strong> Model更新やInstruction変更を「新しい方が良いはず」で導入しない。</p>
+<ul>
+<li>代表TaskとEdge caseをEvalsとして固定する。</li>
+<li>まず高性能Modelで品質Baselineを作る。</li>
+<li>その後、必要なら小型Modelへ置換しCost / Latencyを最適化する。</li>
+<li>Skill / Rule / Prompt変更でも同じEvalsを再実行する。</li>
+<li>Model snapshotやVersion pinが利用可能なら、Release単位で固定を検討する。</li>
+</ul>
+<p>OpenAIは「EvalsでBaseline → Accuracy達成 → 小型Modelへ置換」の順序を推奨しています。ハーネスではModelだけでなく、Rule / Skill / Tool schema変更も同じ回帰評価対象にします。</p>
+<h3>11.18 主要原則の一覧</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>#</th><th>標準原則</th><th>主な責務層</th><th>違反した場合の典型障害</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Contextは必要最小限</td><td>Context / Policy</td><td>重要Rule忘却、圧縮時欠落、Cost増</td></tr>
+<tr><td>2</td><td>最小権限・Read/Write分離</td><td>Controller / Tool</td><td>過剰変更、機密参照</td></tr>
+<tr><td>3</td><td>必須制約はLLM外で強制</td><td>Guard / Hook</td><td>Prompt逸脱による事故</td></tr>
+<tr><td>4</td><td>外部コンテンツを命令として信用しない</td><td>Context / Security</td><td>Prompt Injection</td></tr>
+<tr><td>5</td><td>Tool / MCPを権限境界として設計</td><td>Tool / Adapter</td><td>不要な権限・Supply-chain risk</td></tr>
+<tr><td>6</td><td>高リスク操作はHuman approval</td><td>Controller</td><td>不可逆な誤操作</td></tr>
+<tr><td>7</td><td>承認疲れを避ける</td><td>Permission / Sandbox</td><td>形骸化した承認</td></tr>
+<tr><td>8</td><td>調査・計画・実装・検証を分ける</td><td>Graph / Workflow</td><td>誤った前提のまま変更</td></tr>
+<tr><td>9</td><td>完了は機械検証で判定</td><td>Verification</td><td>「成功したつもり」</td></tr>
+<tr><td>10</td><td>独立レビューを別Contextで実施</td><td>Agent / Verification</td><td>自己正当化・見落とし</td></tr>
+<tr><td>11</td><td>Agentは必要なときだけ分割</td><td>Orchestration</td><td>調整・評価複雑化</td></tr>
+<tr><td>12</td><td>Trace / Auditを残す</td><td>Observability</td><td>原因不明、再現不能</td></tr>
+<tr><td>13</td><td>Loop / Retryに上限を設定</td><td>Controller</td><td>暴走、Cost増、同一失敗反復</td></tr>
+<tr><td>14</td><td>WriteにはRollbackを用意</td><td>State / Distribution</td><td>復旧不能</td></tr>
+<tr><td>15</td><td>SecretをModelから隔離</td><td>Runtime / Tool</td><td>情報漏えい</td></tr>
+<tr><td>16</td><td>非対話実行は明示Configで再現</td><td>Runtime / Distribution</td><td>端末差・CI差</td></tr>
+<tr><td>17</td><td>変更はEvalsで回帰確認</td><td>Verification</td><td>Model/Prompt更新による品質劣化</td></tr>
+</tbody>
+</table></div>
+<div class="viewbox">
+<span class="label">見解</span>
+ハーネスの成熟度は「Agentがどこまで自律的に動くか」ではなく、<strong>自律性を高めても事故・品質劣化・原因不明が増えない制御構造を持つか</strong>で測るべきです。大規模SIでは特に、PromptよりもPermission、State、Verification、Evidence、Rollback、Observabilityの設計が品質を左右します。妥当性は <span class="conf">99%</span>。
+</div>
+</section>
+<section id="s12"><h2>12. 用語集 — ハーネス構造を理解するための最小知識</h2><p>「仕組み」より先に、<strong>何のために存在するか</strong>を理解してください。</p><div class="table-wrap"><table><thead><tr><th>用語</th><th>平易な意味</th><th>ハーネスとの関係</th></tr></thead><tbody>
+<tr><td><strong>LLM</strong></td><td>Large Language Model。文章やコードを理解・生成するAI本体。</td><td>ハーネスが制御する「頭脳」。</td></tr>
+<tr><td><strong>Harness</strong></td><td>LLMを業務で使えるよう、その周囲に付ける指示・制御・接続・検証の仕組み全体。</td><td>本書の主対象。</td></tr>
+<tr><td><strong>Context</strong></td><td>LLMが今の回答を考えるために渡されている指示、会話、資料、Tool定義など。</td><td>多すぎても少なすぎても品質が落ちる。</td></tr>
+<tr><td><strong>Context Window</strong></td><td>一度にLLMが参照できるContextの最大容量。「作業メモリ」の大きさ。</td><td>Rules、Tools、MCP、会話、ファイル等で共有する有限資源。</td></tr>
+<tr><td><strong>Compaction / Context Compression</strong></td><td>Contextが大きくなったとき、過去情報を要約・圧縮して空きを作る処理。</td><td>長時間Agentでは有用だが、重要状態は外部保存して再取得可能にする。</td></tr>
+<tr><td><strong>Token</strong></td><td>LLMが文字列を処理するときの小さな単位。単語の一部や記号の場合もある。</td><td>Context Windowや利用量はToken数で管理されることが多い。</td></tr>
+<tr><td><strong>Tokenizer</strong></td><td>文章やコードをTokenへ分割し、モデルが扱える番号列へ変換する仕組み。</td><td>通常は生成AI基盤側。業務ハーネスで作り直さない。</td></tr>
+<tr><td><strong>Embedding</strong></td><td>文章やコードの意味を数値ベクトルへ変換し、意味の近さを比較する技術。</td><td>検索・RAGの下位基盤。</td></tr>
+<tr><td><strong>Transformer</strong></td><td>多くのLLMの中核となるニューラルネットワーク構造。</td><td>生成AI基盤側。</td></tr>
+<tr><td><strong>Attention</strong></td><td>入力のどの部分を重視して次の出力を考えるかをモデル内部で計算する仕組み。</td><td>生成AI基盤側。</td></tr>
+<tr><td><strong>KV Cache</strong></td><td>過去TokenのAttention計算に必要なKey / Valueを保存し、毎回すべてを再計算しないための高速化メモリ。</td><td>推論基盤の性能最適化。通常ハーネスでは触らない。</td></tr>
+<tr><td><strong>Sampling / Decoding</strong></td><td>次に来そうなToken候補から、実際に出力するTokenを選ぶ方法。</td><td>通常はモデルAPI・推論基盤の設定。</td></tr>
+<tr><td><strong>Batching</strong></td><td>複数の推論要求をまとめて効率よく処理する仕組み。</td><td>Model Serving側。</td></tr>
+<tr><td><strong>Model Serving</strong></td><td>LLMをAPI等として動かし、複数利用者から呼び出せるようにする基盤。</td><td>ハーネスより下の基盤。</td></tr>
+<tr><td><strong>Prompt</strong></td><td>LLMへ渡す文章全般。質問、指示、例、Contextを含む。</td><td>ハーネスが組み立てる入力。</td></tr>
+<tr><td><strong>Instruction / Rule</strong></td><td>AIへ「こう振る舞ってほしい」と伝える行動規約。</td><td>AGENTS.md、CLAUDE.md、Cursor Rules等。</td></tr>
+<tr><td><strong>Skill</strong></td><td>特定作業のための再利用可能な詳しい手順・知識・Scriptのまとまり。</td><td>必要時だけロードし、常時Contextを増やさない。</td></tr>
+<tr><td><strong>Hook</strong></td><td>Tool実行前、ファイル編集後、終了時等の特定イベントで自動的に動く処理。</td><td>「AIが忘れても必ず実行する」制御。</td></tr>
+<tr><td><strong>Agent</strong></td><td>目的・指示・Tools・Contextを与えられ、仕事を自律的に進めるAI実行主体。</td><td>意味理解・設計・レビュー等の判断責務。</td></tr>
+<tr><td><strong>Subagent</strong></td><td>主Agentから切り離された別Contextで専門作業や並列作業を行うAgent。</td><td>Context分離に有効。乱用は調整コスト増。</td></tr>
+<tr><td><strong>Tool</strong></td><td>AIが呼べる具体的操作。Shell、ファイル読書き、検索、API等。</td><td>LLMの外界操作能力。</td></tr>
+<tr><td><strong>MCP</strong></td><td>Model Context Protocol。AIを外部ToolsやData sourceへ接続する共通プロトコル。</td><td>外部接続を標準化しやすい。</td></tr>
+<tr><td><strong>Adapter</strong></td><td>外部製品やAPIの違いを共通インターフェースへ変換する部品。</td><td>Provider差を吸収。</td></tr>
+<tr><td><strong>Orchestration</strong></td><td>複数のAgent、Tool、工程をどの順番・条件で動かすかを制御すること。</td><td>ハーネスの中核。</td></tr>
+<tr><td><strong>Graph</strong></td><td>作業をNode（工程）とEdge（依存・遷移）で表した実行構造。</td><td>分岐・合流・差戻しを明示。</td></tr>
+<tr><td><strong>Controller / Guard</strong></td><td>権限、状態遷移、完了、排他等をLLMに頼らず機械的に決める部品。</td><td>安全性・再現性に重要。</td></tr>
+<tr><td><strong>Permission / Sandbox</strong></td><td>AIがアクセス・実行できる範囲を限定する仕組み。</td><td>危険操作を実行環境側で制限。</td></tr>
+<tr><td><strong>Evidence</strong></td><td>AIの判断や成果が何を根拠にしたかを追えるSource、Log、Hash等。</td><td>監査・再現・レビューに必要。</td></tr>
+<tr><td><strong>Readback</strong></td><td>書込・保存・公開後、対象をもう一度読み戻して本当に反映されたか確認すること。</td><td>API成功＝成果完成と誤認しないための検証。</td></tr>
+<tr><td><strong>Idempotency</strong></td><td>同じ処理を複数回実行しても、二重登録など不正な副作用を増やさない性質。</td><td>Release、課題起票、外部更新等で重要。</td></tr>
+<tr><td><strong>Plugin</strong></td><td>Rules、Skills、MCP、Agents、Hooks等をまとめて導入・配布する単位。</td><td>チームへのハーネス配布。</td></tr>
+<tr><td><strong>RAG</strong></td><td>Retrieval-Augmented Generation。回答時に必要資料を検索し、その結果をContextへ追加する方式。</td><td>全資料を常時投入せず必要情報だけ渡す。</td></tr>
+<tr><td><strong>SBOM</strong></td><td>Software Bill of Materials。成果物に含まれる依存部品の一覧。</td><td>配布・監査・脆弱性管理。</td></tr>
+</tbody></table></div></section>
+<section id="s13">
+<h2>13. メーカー公式情報源</h2>
+<p>本書の製品対応、Context設計、および11章の開発上の留意点は、2026-09-18時点で以下の公式情報を確認して一般化しています。</p>
+<h3>OpenAI</h3>
+<ul>
+<li><a href="https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/">A practical guide to building agents</a> — Agent構成、Tool設計、Single/Multi-agent、Guardrails、Human intervention、Evals。</li>
+<li><a href="https://openai.com/index/designing-agents-to-resist-prompt-injection/">Designing AI agents to resist prompt injection</a> — Prompt Injectionを前提とした被害局所化、Source/Sink分離、多層防御。</li>
+<li><a href="https://openai.com/index/prompt-injections/">Understanding prompt injections</a> — Least privilege、Confirmation、明示Scope、Sandbox。</li>
+<li><a href="https://developers.openai.com/api/docs/guides/latest-model">Model guidance</a> — Instructions / Skills競合、最小Prompt、Model運用。</li>
+<li><a href="https://openai.com/index/new-tools-for-building-agents/">New tools for building agents</a> — Handoffs、Guardrails、Tracing &amp; Observability。</li>
+</ul>
+<h3>Anthropic / Claude Code</h3>
+<ul>
+<li><a href="https://code.claude.com/docs/en/security">Security</a> — Read-only default、Sandbox、Prompt Injection、Network、MCP trust、Cloud audit。</li>
+<li><a href="https://code.claude.com/docs/en/permissions">Configure permissions</a> — allow / ask / deny、権限優先順位、PromptとPermissionの分離。</li>
+<li><a href="https://code.claude.com/docs/en/sandboxing">Sandboxing</a> — Filesystem / Network isolation。</li>
+<li><a href="https://code.claude.com/docs/en/best-practices">Best practices for Claude Code</a> — Context管理、Explore→Plan→Implement、Verification、Subagent独立レビュー、Approval fatigue。</li>
+<li><a href="https://code.claude.com/docs/en/headless">Run Claude Code programmatically</a> — Script / CIでのbare mode、明示設定。</li>
+<li><a href="https://code.claude.com/docs/en/hooks">Hooks reference</a> — 実行前後のPolicy enforcement / Lifecycle制御。</li>
+</ul>
+<h3>Cursor</h3>
+<ul>
+<li><a href="https://cursor.com/docs/agent/security">Agent Security</a> — Manual approval、Version control、MCP approval、Network制限。</li>
+<li><a href="https://cursor.com/docs/enterprise/security-hardening">Security and Privacy Hardening</a> — Defense in depth、Sandbox、Hooks、Rulesの非決定論性、MCP / Plugin governance、Audit。</li>
+<li><a href="https://cursor.com/docs/hooks">Hooks</a> — Agent lifecycleでの観測・拒否・変更、Security-critical hookのfail-closed。</li>
+<li><a href="https://cursor.com/docs/cloud-agent/security">Cloud Agent Security</a> — Prompt Injection、Network egress、Runtime secrets、Draft PR / Human review、Signed commits。</li>
+<li><a href="https://cursor.com/docs/rules">Rules</a> — RuleのContext注入とScope。</li>
+<li><a href="https://cursor.com/docs/mcp">MCP</a> — Server / Tool allowlistとNetwork control。</li>
+</ul>
+
+</section>
+<section id="s14">
+<h2>14. まとめ</h2>
+<p>ハーネスエンジニアリングの本質は、製品固有の機能名を覚えることではなく、<strong>利用者入口、規約・指示、工程制御、決定論的制御、AI判断責務、標準手順、外部接続、Context・Knowledge、検証・観測・配布</strong>という一般構造を理解し、それぞれへ責務を正しく配置することです。</p>
+<p>さらに、主要AIメーカーの公式ガイダンスを横断すると、優れたハーネスは単に「Promptが上手い」「Agentが多い」ものではありません。<strong>Context最小化、最小権限、Sandbox、Prompt Injection対策、Tool/MCP信頼管理、Human approval、決定論的Gate、機械検証、独立レビュー、Observability、Rollback、Evals</strong>を組み合わせ、LLMの判断が外れてもシステム側で被害と品質劣化を抑えられる構造が重要です。</p>
+<p>Codex・Claude Code・CursorのRules、Skills、Hooks、MCP、Agents等は、この一般構造を実装する具体例として理解します。製品が変わっても、責務と制御原則は再利用できます。</p>
+<div class="viewbox">
+<span class="label">見解</span>
+ハーネスエンジニアリングの完成度は「どれだけAIへ任せたか」ではなく、<strong>AIへ任せる範囲を広げても、品質・安全性・再現性・監査可能性が崩れないか</strong>で評価するのが適切です。妥当性は <span class="conf">99%</span>。
+</div>
+</section>
+</main>
+</div>
+<footer>
+<p>Document ID: HARNESS-ENGINEERING-DEVELOPMENT-STANDARD / Version: 0.4 / Status: DRAFT</p>
+</footer>
+</body>
+</html>
