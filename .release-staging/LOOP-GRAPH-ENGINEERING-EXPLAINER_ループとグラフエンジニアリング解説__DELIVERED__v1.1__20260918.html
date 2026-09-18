@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>ループエンジニアリングとグラフエンジニアリング — AIエージェントを構造的に制御する設計入門</title>
+<style>
+:root{
+  --ink:#172033;--muted:#5b6678;--line:#d8e0ea;--paper:#fff;--bg:#eef3f8;
+  --navy:#153a61;--blue:#1967a3;--teal:#087f78;--green:#28724b;--amber:#9a6500;
+  --red:#ae2d24;--purple:#6845a6;--soft-blue:#edf6ff;--soft-teal:#eaf9f7;
+  --soft-purple:#f4effb;--soft-amber:#fff7e5;--soft-red:#fff0ee;--shadow:0 10px 28px rgba(18,37,63,.09)
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Meiryo,"メイリオ","Yu Gothic",sans-serif;line-height:1.72}
+a{color:#0b61a6;text-decoration:none}a:hover{text-decoration:underline}
+code,.mono{font-family:Consolas,"BIZ UDPGothic",monospace;font-size:.92em}
+.hero{background:linear-gradient(125deg,#102d4d 0%,#155a8f 53%,#08796f 100%);color:#fff;padding:54px 22px 46px}
+.hero-inner,.wrap{max-width:1220px;margin:0 auto}
+.eyebrow{font-size:.78rem;letter-spacing:.12em;font-weight:800;opacity:.82}
+h1{font-size:clamp(2rem,4.2vw,3.55rem);line-height:1.17;margin:.45rem 0 1rem;letter-spacing:-.035em}
+.hero p{max-width:1000px;font-size:1.08rem;margin:.55rem 0}
+.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:24px}
+.meta div{border:1px solid rgba(255,255,255,.23);background:rgba(255,255,255,.1);border-radius:13px;padding:12px 14px}
+.meta small{display:block;opacity:.75}.meta strong{display:block;margin-top:3px;overflow-wrap:anywhere}
+.wrap{padding:0 20px 72px}
+.summary{margin:-24px auto 24px;background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:22px;display:grid;grid-template-columns:1.7fr 1fr 1fr;gap:14px;position:relative}
+.summary .main{padding-right:16px;border-right:1px solid var(--line)}
+.summary h2{margin:0 0 6px;font-size:1.28rem}.bigword{font-size:1.15rem;font-weight:900;color:var(--navy)}
+.kpi{border-radius:13px;border:1px solid var(--line);padding:13px;background:#fafcfe}.kpi b{display:block;font-size:1.65rem;color:var(--navy)}.kpi span{font-size:.84rem;color:var(--muted)}
+.toc,section{background:#fff;border:1px solid var(--line);border-radius:17px;box-shadow:0 5px 18px rgba(22,36,55,.045)}
+.toc{padding:18px 20px;margin:20px 0}.toc ol{columns:3;margin:8px 0 0;padding-left:24px}.toc li{break-inside:avoid;margin:.2rem 0;font-size:.92rem}
+section{padding:28px 30px;margin:20px 0}
+h2{font-size:1.6rem;line-height:1.35;margin:0 0 16px;border-bottom:2px solid #e8edf3;padding-bottom:10px;letter-spacing:-.015em}
+h3{font-size:1.13rem;margin:23px 0 8px}h4{margin:18px 0 6px}.lead{font-size:1.04rem;color:#2c3950}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.card{border:1px solid var(--line);border-radius:14px;padding:17px;background:#fbfcfe}.card h3{margin-top:0}.card p:last-child{margin-bottom:0}
+.callout{border-left:5px solid var(--blue);background:var(--soft-blue);border-radius:10px;padding:14px 16px;margin:14px 0}
+.callout.fact{border-color:var(--teal);background:var(--soft-teal)}.callout.view{border-color:var(--purple);background:var(--soft-purple)}
+.callout.warn{border-color:var(--amber);background:var(--soft-amber)}.callout.danger{border-color:var(--red);background:var(--soft-red)}
+.label{display:inline-block;border-radius:999px;padding:3px 8px;font-weight:800;font-size:.74rem;letter-spacing:.03em;margin-right:6px;vertical-align:1px}
+.label.fact{background:#d6f0ec;color:#0c625d}.label.view{background:#e9dff8;color:#55338a}.label.def{background:#dbeafe;color:#174f7e}
+.label.warn{background:#ffebc4;color:#765000}
+.table-scroll{overflow-x:auto;margin:12px 0 18px}
+table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:.91rem}
+th{background:#edf3f8;color:#22364b;text-align:left;padding:10px 11px;border-bottom:1px solid #ced8e3}
+td{padding:10px 11px;border-bottom:1px solid #e5eaf0;vertical-align:top}tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#fbfcfd}
+.diagram{background:#10243a;color:#edf5fc;border-radius:15px;padding:18px;overflow:auto;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);margin:14px 0}
+.diagram pre{margin:0;font-family:Consolas,"BIZ UDPGothic",monospace;font-size:.84rem;line-height:1.62;white-space:pre}
+.svgbox{border:1px solid var(--line);border-radius:15px;background:linear-gradient(180deg,#fcfeff,#f5f9fc);padding:12px;margin:14px 0;overflow-x:auto}
+.svgbox svg{display:block;min-width:840px;width:100%;height:auto}
+.arch{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:15px 0}
+.layer{border:1px solid var(--line);border-radius:13px;padding:14px;background:#f9fbfd;min-height:170px}
+.layer.control{background:#eef6ff;border-color:#accbe3}.layer.intel{background:#edf9f7;border-color:#add7d1}
+.layer.exec{background:#f5f0fb;border-color:#cfbce8}.layer.verify{background:#fff8e9;border-color:#e6ca8f}
+.layer b{font-size:.76rem;color:var(--navy);letter-spacing:.04em}.layer strong{display:block;margin:6px 0}.layer span{font-size:.82rem;color:#4f5c6f}
+.flow{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:8px;overflow-x:auto;padding:4px 0 8px}
+.step{border:1px solid var(--line);border-radius:12px;padding:11px;background:#fbfcfe;min-height:122px}
+.step b{color:var(--blue);font-size:.75rem}.step strong{display:block;font-size:.88rem;margin:4px 0}.step span{font-size:.77rem;color:var(--muted)}
+.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 14px}
+.check{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fbfcfe;display:flex;gap:9px}
+.check:before{content:"✓";display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:50%;background:#dff2e6;color:#276942;font-weight:900}
+.anti{border-left:4px solid var(--red);background:#fff5f4;border-radius:9px;padding:11px 13px;margin:8px 0}
+.good{border-left:4px solid var(--green);background:#f0f8f3;border-radius:9px;padding:11px 13px;margin:8px 0}
+.source-list li{margin:.55rem 0}.source-list small{color:var(--muted)}
+.footer{text-align:center;color:var(--muted);font-size:.82rem;padding:24px 0}
+@media(max-width:1000px){.arch{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:1fr}.toc ol{columns:2}.meta{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.wrap{padding:0 12px 55px}.hero{padding:38px 16px 38px}.summary{grid-template-columns:1fr;margin-top:-18px}.summary .main{border-right:0;border-bottom:1px solid var(--line);padding:0 0 12px}.grid2,.checks{grid-template-columns:1fr}.toc ol{columns:1}.arch{grid-template-columns:1fr}section{padding:20px 16px}table{font-size:.82rem}.meta{grid-template-columns:1fr}.flow{grid-template-columns:repeat(7,210px)}}
+@media print{body{background:#fff}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0 8mm}.summary,section,.toc{box-shadow:none}.summary{margin:10mm 0 4mm}section{break-inside:avoid-page}a{color:inherit}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">AGENTIC SYSTEMS / CONTROL DESIGN</div>
+    <h1>ループエンジニアリングと<br>グラフエンジニアリング</h1>
+    <p>LLM（大規模言語モデル）を単発の応答器ではなく、ツール利用・分岐・再試行・複数工程を伴う実行システムとして扱うときに必要になる、制御構造の設計を整理する。</p>
+    <div class="meta">
+      <div><small>文書</small><strong>Loop / Graph Engineering 解説</strong></div>
+      <div><small>版 / 状態</small><strong>1.1 / DELIVERED</strong></div>
+      <div><small>更新日</small><strong>2026-09-18</strong></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="summary">
+    <div class="main">
+      <h2>最初に30秒で理解</h2>
+      <p><span class="bigword">Graph Engineering（グラフエンジニアリング）</span>は、仕事全体を「状態・作業単位・依存・分岐・品質ゲート・終了条件」に分け、<strong>何を、どの順番・条件で進めるか</strong>を設計する。</p>
+      <p><span class="bigword">Loop Engineering（ループエンジニアリング）</span>は、不足・失敗・不合格・中断が発生したとき、<strong>どこへ戻し、何が変われば再実行し、何回で打ち切るか</strong>を設計する。</p>
+    </div>
+    <div class="kpi"><b>Graph</b><span>全体の経路・依存・状態遷移・完了</span></div>
+    <div class="kpi"><b>Loop</b><span>局所の戻り・再試行・収束・打切り</span></div>
+  </div>
+
+  <nav class="toc" aria-label="目次"><strong>目次</strong><ol>
+    <li><a href="#s1">用語の定義</a></li>
+    <li><a href="#s2">なぜ制御構造が必要か</a></li>
+    <li><a href="#s3">Graph Engineering</a></li>
+    <li><a href="#s4">Loop Engineering</a></li>
+    <li><a href="#s5">一般的なHarness構造</a></li>
+    <li><a href="#s6">Outer GraphとInner Loop</a></li>
+    <li><a href="#s7">Work GraphとKnowledge Graph</a></li>
+    <li><a href="#s8">Node・Agent・Skill・Controller</a></li>
+    <li><a href="#s9">構造化Handoff</a></li>
+    <li><a href="#s10">開発作業の具体例</a></li>
+    <li><a href="#s11">典型的な失敗設計</a></li>
+    <li><a href="#s12">設計レビュー観点</a></li>
+    <li><a href="#sources">根拠・参照資料</a></li>
+  </ol></nav>
+
+  <section id="s1">
+    <h2>1. 用語の定義</h2>
+    <div class="callout warn"><span class="label warn">用語</span><strong>Loop Engineering と Graph Engineering は、単一の標準規格で定義された固定用語ではない。</strong> 本資料では、AIエージェントの反復処理、状態機械、ワークフローグラフ、再試行・復旧設計を構造的に説明するための整理軸として使用する。</div>
+    <div class="grid2">
+      <div class="card">
+        <span class="label def">定義</span><h3>Graph Engineering</h3>
+        <p>作業をNode（処理単位）、Edge（遷移）、State（状態）、Guard（遷移条件）、Gate（通過条件）、Terminal（終了状態）へ分解し、実行経路を明示的に設計すること。</p>
+      </div>
+      <div class="card">
+        <span class="label def">定義</span><h3>Loop Engineering</h3>
+        <p>失敗・不足・検査NG・外部中断などから再度処理を行う際に、戻り先、再実行条件、差分、上限、エスカレーション、重複副作用防止を設計すること。</p>
+      </div>
+    </div>
+    <div class="callout fact"><span class="label fact">事実</span>一般的なAgent Runner（エージェント実行器）では、LLM呼出し→出力判定→Tool実行またはHandoff→再度LLM呼出し、という反復が実装される。OpenAI Agents SDKもこの構造を明示している。</div>
+  </section>
+
+  <section id="s2">
+    <h2>2. なぜ制御構造が必要か</h2>
+    <p class="lead">LLMは「次に何をするか」を柔軟に判断できる一方、長い業務処理全体の状態・依存・再試行・完了条件までLLM自身に委ねると、再現性と監査可能性が落ちる。</p>
+    <div class="grid3">
+      <div class="card"><h3>確率的な判断</h3><p>同じ目的でも、LLMが選ぶ説明順、Tool、探索範囲、終了タイミングは揺らぎ得る。</p></div>
+      <div class="card"><h3>副作用</h3><p>ファイル書込、API更新、デプロイなどは「もう一度実行してよいか」を自然言語だけでは安全に決めにくい。</p></div>
+      <div class="card"><h3>完了の曖昧さ</h3><p>「回答が出た」「Tool呼出しが止まった」と「業務上の完了」は同じではない。</p></div>
+    </div>
+    <div class="callout view"><span class="label view">設計上の整理</span><strong>LLMには曖昧な判断を担当させ、状態遷移・回数制御・権限・完了判定のような機械的規則は外側の制御層へ置く</strong>のが、複雑な実行系を理解しやすくする基本構造である。妥当性 <strong>97%</strong>。</div>
+  </section>
+
+  <section id="s3">
+    <h2>3. Graph Engineering — 全体の仕事を「経路」にする</h2>
+    <div class="svgbox">
+      <svg viewBox="0 0 1080 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="作業グラフの基本構造">
+        <defs><marker id="a1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4b6b89"/></marker></defs>
+        <style>.n{fill:#fff;stroke:#9fb5c9;stroke-width:2}.g{fill:#eef8f6;stroke:#6fb6ad;stroke-width:2}.e{fill:#fff6e4;stroke:#d2a54b;stroke-width:2}.t{font-family:Meiryo,sans-serif;font-size:17px;fill:#19314a}.s{font-family:Meiryo,sans-serif;font-size:13px;fill:#526274}.l{stroke:#4b6b89;stroke-width:2.2;fill:none;marker-end:url(#a1)}</style>
+        <rect class="n" x="40" y="120" width="150" height="80" rx="14"/><text class="t" x="115" y="152" text-anchor="middle">START</text><text class="s" x="115" y="177" text-anchor="middle">入力・契約</text>
+        <rect class="n" x="245" y="120" width="160" height="80" rx="14"/><text class="t" x="325" y="152" text-anchor="middle">分析</text><text class="s" x="325" y="177" text-anchor="middle">Evidence取得</text>
+        <polygon class="g" points="520,105 610,160 520,215 430,160"/><text class="t" x="520" y="154" text-anchor="middle">条件判定</text><text class="s" x="520" y="177" text-anchor="middle">十分か?</text>
+        <rect class="n" x="650" y="55" width="175" height="80" rx="14"/><text class="t" x="737" y="87" text-anchor="middle">実装・生成</text><text class="s" x="737" y="112" text-anchor="middle">成果物を作る</text>
+        <rect class="n" x="650" y="205" width="175" height="80" rx="14"/><text class="t" x="737" y="237" text-anchor="middle">追加調査</text><text class="s" x="737" y="262" text-anchor="middle">不足を埋める</text>
+        <rect class="g" x="865" y="55" width="165" height="80" rx="14"/><text class="t" x="947" y="87" text-anchor="middle">検証Gate</text><text class="s" x="947" y="112" text-anchor="middle">受入条件</text>
+        <rect class="e" x="865" y="205" width="165" height="80" rx="14"/><text class="t" x="947" y="237" text-anchor="middle">END / HOLD</text><text class="s" x="947" y="262" text-anchor="middle">完了または保留</text>
+        <path class="l" d="M190 160 H245"/><path class="l" d="M405 160 H430"/>
+        <path class="l" d="M610 145 C625 125,630 95,650 95"/><path class="l" d="M520 215 C540 260,590 245,650 245"/>
+        <path class="l" d="M825 95 H865"/><path class="l" d="M947 135 V205"/>
+        <text class="s" x="621" y="116">YES</text><text class="s" x="570" y="258">NO</text>
+      </svg>
+    </div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>要素</th><th>役割</th><th>実装時に決めること</th></tr></thead>
+      <tbody>
+        <tr><td>State（状態）</td><td>現在どこまで進んだかを表す</td><td>状態Schema、更新権限、永続化、再開方法</td></tr>
+        <tr><td>Node（処理単位）</td><td>1つの仕事を実行する</td><td>入力、出力、責務、Tool権限、終了条件</td></tr>
+        <tr><td>Edge（遷移）</td><td>次に進むNodeを決める</td><td>固定遷移か条件分岐か、並列化の有無</td></tr>
+        <tr><td>Guard / Gate</td><td>進んでよい条件を判定する</td><td>Schema、検証結果、承認、Evidenceの必要条件</td></tr>
+        <tr><td>Terminal（終了）</td><td>Graph全体の終端を定義する</td><td>完了、失敗、保留、要判断をどう区別するか</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout fact"><span class="label fact">事実</span>LangGraphは、GraphをState・Nodes・Edgesで構成し、条件Edgeによる分岐やLoopを表現する。AWS Step FunctionsもState MachineとしてTask、Choice、Retry、Catchなどを明示的に定義する。</div>
+  </section>
+
+  <section id="s4">
+    <h2>4. Loop Engineering — 「やり直す」を設計可能にする</h2>
+    <p>Loopは単に「失敗したらもう一回」ではない。重要なのは、<strong>前回と何が変わったから再実行する価値があるのか</strong>を定義することである。</p>
+    <div class="svgbox">
+      <svg viewBox="0 0 1080 355" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ループの基本構造">
+        <defs><marker id="a2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4b6b89"/></marker></defs>
+        <style>.n{fill:#fff;stroke:#9fb5c9;stroke-width:2}.b{fill:#eef6ff;stroke:#7aa7cc;stroke-width:2}.w{fill:#fff5e2;stroke:#d3a84f;stroke-width:2}.t{font-family:Meiryo,sans-serif;font-size:17px;fill:#19314a}.s{font-family:Meiryo,sans-serif;font-size:13px;fill:#526274}.l{stroke:#4b6b89;stroke-width:2.2;fill:none;marker-end:url(#a2)}</style>
+        <rect class="b" x="70" y="120" width="165" height="85" rx="14"/><text class="t" x="152" y="152" text-anchor="middle">実行</text><text class="s" x="152" y="177" text-anchor="middle">Node / Agent</text>
+        <rect class="n" x="315" y="120" width="180" height="85" rx="14"/><text class="t" x="405" y="152" text-anchor="middle">検査</text><text class="s" x="405" y="177" text-anchor="middle">Gate / Verifier</text>
+        <polygon class="w" points="625,105 720,162 625,219 530,162"/><text class="t" x="625" y="154" text-anchor="middle">不合格?</text><text class="s" x="625" y="180" text-anchor="middle">Failure Signature</text>
+        <rect class="n" x="785" y="45" width="190" height="85" rx="14"/><text class="t" x="880" y="77" text-anchor="middle">完了</text><text class="s" x="880" y="102" text-anchor="middle">Terminalへ進む</text>
+        <rect class="w" x="785" y="220" width="190" height="85" rx="14"/><text class="t" x="880" y="252" text-anchor="middle">再計画 / Escalation</text><text class="s" x="880" y="277" text-anchor="middle">上限超過・差分なし</text>
+        <path class="l" d="M235 162 H315"/><path class="l" d="M495 162 H530"/><path class="l" d="M720 145 C750 115,760 87,785 87"/>
+        <path class="l" d="M625 219 C625 305,330 315,150 205"/><path class="l" d="M720 180 C760 200,760 262,785 262"/>
+        <text class="s" x="740" y="115">PASS</text><text class="s" x="495" y="305">再実行条件を満たす</text><text class="s" x="742" y="211">上限 / 差分なし</text>
+      </svg>
+    </div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>設計項目</th><th>問い</th><th>悪い例</th><th>良い例</th></tr></thead>
+      <tbody>
+        <tr><td>Trigger</td><td>何が起きたら戻るか</td><td>「失敗したら」</td><td>「必須Evidenceが欠落」「Test ID T-103がNG」</td></tr>
+        <tr><td>Return Target</td><td>どこへ戻すか</td><td>最初から全部</td><td>不足の責務を持つNodeだけ</td></tr>
+        <tr><td>Required Delta</td><td>何が変われば再実行するか</td><td>同じ入力で再試行</td><td>新Evidence、修正差分、別観測結果</td></tr>
+        <tr><td>Retry Budget</td><td>何回までか</td><td>無限</td><td>同一Failure SignatureはN回まで</td></tr>
+        <tr><td>Escalation</td><td>収束しないときどうするか</td><td>黙って再試行</td><td>再計画、人判断、HOLDへ遷移</td></tr>
+        <tr><td>Idempotency</td><td>再実行しても副作用は重複しないか</td><td>毎回書込</td><td>実行ReceiptやIdempotency Keyで保護</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="s5">
+    <h2>5. 一般的なHarness（実行制御基盤）の構造</h2>
+    <p class="lead">Harnessは、LLMの能力そのものではなく、LLMを安全に・再現可能に・継続実行させるための外側の実行基盤として考えると理解しやすい。</p>
+    <div class="arch">
+      <div class="layer"><b>LAYER 1</b><strong>入口 / Contract</strong><span>利用者要求を目的、Scope、制約、受入条件、許可操作へ正規化する。</span></div>
+      <div class="layer control"><b>LAYER 2</b><strong>Control Plane</strong><span>Graph、State、権限、再試行、復旧、完了判定を管理する。</span></div>
+      <div class="layer exec"><b>LAYER 3</b><strong>Agent / Tool Runtime</strong><span>LLM、Tool、Agent、SkillをNodeごとに実行する。</span></div>
+      <div class="layer intel"><b>LAYER 4</b><strong>Knowledge / Evidence</strong><span>コード、文書、DB、ログなどの根拠と関係を検索・固定する。</span></div>
+      <div class="layer verify"><b>LAYER 5</b><strong>Verification</strong><span>出力Schema、Test、独立検査、残件、完了条件を判定する。</span></div>
+    </div>
+    <div class="diagram"><pre>利用者要求
+   │
+   ▼
+[Contract / Intent]
+   │
+   ▼
+[Control Plane]
+   ├── Work Graph ── Node / Edge / State / Gate
+   ├── Loop Policy ─ Retry / Rework / Recovery / Escalation
+   ├── Permission  ─ Tool / Write / External Side Effect
+   └── Completion  ─ Terminal / Open Obligations
+          │
+          ▼
+[Agent / Tool Runtime] ── LLM / Tool / API / Code
+          │
+          ├──────────────► [Knowledge / Evidence Store]
+          │
+          ▼
+[Verifier / Test / Schema Check]
+          │
+          └── PASS → 次Node / END
+              FAIL → Loop Policyに従って戻す</pre></div>
+    <div class="callout view"><span class="label view">設計上の整理</span>「Agentを賢くする」だけではなく、Agentの外側にGraphとLoopを置くことで、<strong>確率的な判断と決定論的な制御を分離できる</strong>。妥当性 <strong>98%</strong>。</div>
+  </section>
+
+  <section id="s6">
+    <h2>6. Outer Graph（外側の作業グラフ）と Inner Agent Loop（内側の反復）</h2>
+    <div class="grid2">
+      <div class="card"><h3>Outer Graph</h3><p>業務全体の順序、依存、並列化、品質Gate、権限、残件、完了条件を管理する。複数Agentや非LLM処理をまたぐ。</p></div>
+      <div class="card"><h3>Inner Agent Loop</h3><p>1つのNode内部で、LLMがToolを呼ぶ、結果を読む、追加Toolを呼ぶ、最終出力を返すという反復を行う。</p></div>
+    </div>
+    <div class="callout fact"><span class="label fact">事実</span>OpenAI Agents SDKのRunnerは、最終出力、Handoff、Tool callを判定しながら反復する。これは典型的なInner Agent Loopである。一方、複数工程の業務完了条件は別のワークフロー制御として設計できる。</div>
+    <div class="anti"><strong>混同すると起きる問題：</strong>Agentが「終了」と返しただけで業務全体を完了にする、あるいは1つのAgent Loopに分析・実装・検証・承認まで詰め込み、責務と失敗箇所が追えなくなる。</div>
+  </section>
+
+  <section id="s7">
+    <h2>7. Work GraphとKnowledge Graphは別物</h2>
+    <div class="table-scroll"><table>
+      <thead><tr><th></th><th>Work Graph（作業グラフ）</th><th>Knowledge Graph（知識グラフ）</th></tr></thead>
+      <tbody>
+        <tr><td>目的</td><td>「次に何をするか」を決める</td><td>「何と何が関係しているか」を表す</td></tr>
+        <tr><td>Nodeの例</td><td>影響分析、実装、レビュー、Test</td><td>プログラム、Table、API、設計書、Test Case</td></tr>
+        <tr><td>Edgeの例</td><td>PASSならReviewへ、NGなら修正へ</td><td>AがBを呼ぶ、CがDを更新する</td></tr>
+        <tr><td>状態</td><td>READY / RUNNING / FAILED / DONEなど</td><td>Relation、Evidence、Confidence、Freshnessなど</td></tr>
+        <tr><td>更新契機</td><td>実行イベント</td><td>解析・索引更新・資産変更</td></tr>
+      </tbody>
+    </table></div>
+    <div class="good"><strong>関係：</strong>Knowledge Graphから取得した依存関係やEvidenceを、Work GraphのNodeが入力として使う。つまり「知っている構造」と「進める構造」を分離し、必要なところで接続する。</div>
+  </section>
+
+  <section id="s8">
+    <h2>8. Node・Agent・Skill・Controllerを分ける</h2>
+    <p>Graphを作るときに最も混乱しやすいのが、「何をNodeにするか」「Agentは何個必要か」である。以下の分離で整理しやすくなる。</p>
+    <div class="grid2">
+      <div class="card"><h3>Node</h3><p>あるRunにおける作業の実体。「このモジュールの影響分析」など、対象付きの実行単位。</p></div>
+      <div class="card"><h3>Agent</h3><p>判断責務。「影響分析を行う」「レビューする」など、再利用可能な役割契約。</p></div>
+      <div class="card"><h3>Skill / Tool</h3><p>実行手段。Git操作、SQL解析、Java解析、Web取得など。</p></div>
+      <div class="card"><h3>Controller</h3><p>機械的な制御。次Node選択、Retry回数、権限、Scope、完了判定など。</p></div>
+    </div>
+    <div class="callout view"><span class="label view">設計上の整理</span>同じAgentを複数Nodeで再利用し、同じSkillを複数Agentが使う多対多構造にすると、責務と実行対象を分離しやすい。妥当性 <strong>96%</strong>。</div>
+  </section>
+
+  <section id="s9">
+    <h2>9. 構造化Handoff（引継ぎ）</h2>
+    <p>Agent同士を自由文だけで接続すると、「何が確定し、何が未確定で、次の担当が何を信頼してよいか」が曖昧になる。引継ぎはSchema（構造）を持たせる。</p>
+    <div class="diagram"><pre>{
+  "taskId": "TASK-1042",
+  "sourceNode": "impact-analysis",
+  "targetNode": "implementation",
+  "artifactIds": ["ART-21", "ART-22"],
+  "evidenceIds": ["EV-883", "EV-884"],
+  "decisions": [
+    {"id": "DEC-31", "status": "CONFIRMED"}
+  ],
+  "openObligations": [
+    {"id": "OB-7", "reason": "API仕様未取得"}
+  ],
+  "completionResult": {
+    "status": "PASS_WITH_OPEN_ITEM",
+    "failureSignature": null
+  }
+}</pre></div>
+    <div class="good"><strong>ポイント：</strong>自然言語は説明用に残してよいが、次工程の制御に使う値はID・状態・Schemaで受け渡す。</div>
+  </section>
+
+  <section id="s10">
+    <h2>10. 開発作業の具体例</h2>
+    <h3>例：不具合修正</h3>
+    <div class="flow">
+      <div class="step"><b>01</b><strong>受付</strong><span>症状、Scope、再現条件を契約化</span></div>
+      <div class="step"><b>02</b><strong>再現</strong><span>失敗Evidenceを固定</span></div>
+      <div class="step"><b>03</b><strong>原因分析</strong><span>候補と反証を整理</span></div>
+      <div class="step"><b>04</b><strong>修正</strong><span>許可Scope内だけ変更</span></div>
+      <div class="step"><b>05</b><strong>Test</strong><span>再現Testと回帰Test</span></div>
+      <div class="step"><b>06</b><strong>Review</strong><span>独立検査</span></div>
+      <div class="step"><b>07</b><strong>完了</strong><span>残件0とEvidenceを確認</span></div>
+    </div>
+    <p>ここでTestがNGなら、Graph全体を最初から実行し直す必要はない。Failure Signature（失敗特徴）から原因分類Nodeまたは修正Nodeへ戻し、修正差分と回帰範囲が変わったことを確認して再実行する。これがLoop Engineeringである。</p>
+    <h3>例：影響調査</h3>
+    <p>Knowledge Graphで呼出関係・CRUD・Data Lineage（データの流れ）を探索し、その結果をEvidenceとしてWork Graphの「影響閉包」Nodeへ入力する。未確認候補が残ればLoopし、全候補が「対象／対象外／未解決」に分類されたら次工程へ進む。</p>
+  </section>
+
+  <section id="s11">
+    <h2>11. 典型的な失敗設計</h2>
+    <div class="anti"><strong>巨大Agent：</strong>分析・実装・レビュー・完了判定を1つのAgentに持たせる。自己承認と責務混在が起きる。</div>
+    <div class="anti"><strong>無限Retry：</strong>同じ入力・同じTool・同じFailure Signatureで繰り返す。計算量だけ増えて情報は増えない。</div>
+    <div class="anti"><strong>自由文Handoff：</strong>次工程が前工程の「要約」を信頼するしかなく、未確定事項やEvidenceが落ちる。</div>
+    <div class="anti"><strong>GraphとKnowledgeの混同：</strong>資産依存関係と作業順序を同じGraphで表し、意味の異なるEdgeが混在する。</div>
+    <div class="anti"><strong>LLMに状態遷移を全面委任：</strong>「もう十分」とModelが判断した時点を業務完了としてしまう。</div>
+    <div class="anti"><strong>副作用の再実行保護なし：</strong>Crash後の再開で、書込・通知・デプロイが二重実行される。</div>
+  </section>
+
+  <section id="s12">
+    <h2>12. 設計レビュー観点</h2>
+    <div class="checks">
+      <div class="check">GraphのSTART、Terminal、失敗終端、保留終端が明示されている。</div>
+      <div class="check">各Nodeの入力・出力・責務・権限・完了条件が定義されている。</div>
+      <div class="check">条件分岐が自然言語の雰囲気ではなくState値で説明できる。</div>
+      <div class="check">LoopごとにTrigger、戻り先、Required Delta、上限がある。</div>
+      <div class="check">同じFailure Signatureを無制限に再試行しない。</div>
+      <div class="check">Crash再開時に完了Nodeと副作用を重複実行しない。</div>
+      <div class="check">Agentの自己申告だけでGraph全体を完了にしない。</div>
+      <div class="check">Work GraphとKnowledge Graphの責務が分かれている。</div>
+      <div class="check">HandoffにArtifact、Evidence、Decision、Open ItemのIDがある。</div>
+      <div class="check">生成担当と検証担当の独立性が必要な箇所を分けている。</div>
+    </div>
+    <div class="callout view"><span class="label view">まとめ</span><strong>Graph Engineeringは「仕事の地図」を設計し、Loop Engineeringは「地図の途中で問題が起きたときの戻り方」を設計する。</strong> Harnessは、その地図と戻り方をLLMの外側で実行・監視する基盤である。妥当性 <strong>99%</strong>。</div>
+  </section>
+
+  <section id="sources">
+    <h2>根拠・参照資料</h2>
+    <ul class="source-list">
+      <li><a href="https://openai.github.io/openai-agents-python/running_agents/" target="_blank" rel="noopener">OpenAI Agents SDK — Running agents</a><br><small>Agent Loop、Handoff、Tool call、max turnsの一般例。</small></li>
+      <li><a href="https://langchain-ai.github.io/langgraphjs/how-tos/subgraphs-manage-state/" target="_blank" rel="noopener">LangGraph — Graph API overview</a><br><small>State、Nodes、Edges、条件分岐、Loop、Checkpointの一般例。</small></li>
+      <li><a href="https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html" target="_blank" rel="noopener">AWS Step Functions — Error handling</a><br><small>State MachineにおけるRetry、Catch、Fallbackの一般例。</small></li>
+    </ul>
+    <div class="callout fact"><span class="label fact">位置づけ</span>上記の製品・フレームワークは概念の根拠例として参照している。特定製品の採用を前提とした資料ではない。</div>
+  </section>
+
+  <div class="footer">Loop / Graph Engineering 解説 — 2026-09-18</div>
+</main>
+</body>
+</html>
