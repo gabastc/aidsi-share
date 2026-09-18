@@ -1,0 +1,42 @@
+name: Temporary upload loop graph explainer to latest release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/_temporary-upload-loop-graph-explainer-to-latest-release.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Upload HTML to latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASSET_NAME: "LOOP-GRAPH-ENGINEERING-EXPLAINER_ループとグラフエンジニアリング解説__DELIVERED__v1.1__20260918.html"
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')"
+          gh release upload "$TAG" ".release-staging/$ASSET_NAME" --clobber --repo "$GITHUB_REPOSITORY"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.assets[] | select(.name == env.ASSET_NAME) | {name, size, state, digest, browser_download_url}'
+
+      - name: Remove temporary upload files from main
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -- ".release-staging/LOOP-GRAPH-ENGINEERING-EXPLAINER_ループとグラフエンジニアリング解説__DELIVERED__v1.1__20260918.html" ".github/workflows/_temporary-upload-loop-graph-explainer-to-latest-release.yml"
+          git commit -m "chore: remove temporary release upload files"
+          git push origin HEAD:main
